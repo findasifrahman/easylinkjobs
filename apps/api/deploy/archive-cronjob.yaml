@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: easylinkjobs-archive
+spec:
+  schedule: "0 3 * * *"
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: archive-runner
+              image: ghcr.io/easylinkjobs/api:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - python
+                - -m
+                - scripts.run_archive
+                - --tracking-days
+                - "90"
+                - --application-days
+                - "180"
+              envFrom:
+                - secretRef:
+                    name: easylinkjobs-api-env

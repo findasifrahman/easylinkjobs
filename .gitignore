@@ -1,0 +1,37 @@
+# Node
+node_modules/
+.pnpm-store/
+.next/
+out/
+coverage/
+apps/api/node_modules/
+apps/web/node_modules/
+apps/web/.next/
+# Python
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+
+# Env
+.env
+.env.local
+*.env.local
+apps/api/.env
+apps/web/.env
+apps/api/.env.example
+apps/web/.env.example
+
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Docker
+data/

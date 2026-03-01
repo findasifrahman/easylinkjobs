@@ -1,0 +1,16 @@
+{
+  "name": "easylinkjobs-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Monorepo scaffold for easylinkjobs",
+  "packageManager": "pnpm@10.4.1",
+  "scripts": {
+    "dev:web": "pnpm --filter @easylinkjobs/web dev",
+    "build:web": "pnpm --filter @easylinkjobs/web build",
+    "lint:web": "pnpm --filter @easylinkjobs/web lint",
+    "test:web": "pnpm --filter @easylinkjobs/web test",
+    "typecheck:web": "pnpm --filter @easylinkjobs/web typecheck",
+    "lint": "pnpm lint:web",
+    "format": "pnpm --filter @easylinkjobs/web format"
+  }
+}

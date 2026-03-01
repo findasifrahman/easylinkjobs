@@ -1,0 +1,1251 @@
+generator client {
+  provider                    = "prisma-client-py"
+  recursive_type_depth        = 5
+  enable_experimental_decimal = true
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  DISABLED
+}
+
+enum CandidateStatus {
+  UNCLAIMED
+  CLAIMED
+  ACTIVE
+  ARCHIVED
+}
+
+enum CompanyMemberStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum CompanyType {
+  CHINESE
+  WFOE
+  RO
+  FOREIGN_STARTUP
+  AGENCY
+  OTHER
+}
+
+enum OrgSize {
+  SOLO
+  SMALL
+  MEDIUM
+  LARGE
+  ENTERPRISE
+}
+
+enum CompanyVerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum CompanyVerificationDocType {
+  BUSINESS_LICENSE
+  TAX_CERTIFICATE
+  LEGAL_REP_ID
+  AUTHORIZATION_LETTER
+  OTHER
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  TEMPORARY
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+}
+
+enum RemotePolicy {
+  ONSITE
+  HYBRID
+  REMOTE
+}
+
+enum ContactVisibilityPolicy {
+  PUBLIC
+  APPLICANTS_ONLY
+  PREMIUM_ONLY
+}
+
+enum JobSource {
+  DIRECT
+  SCRAPED
+  PARTNER
+}
+
+enum JobLanguage {
+  ENGLISH
+  CHINESE
+  BENGALI
+  OTHER
+}
+
+enum LanguageLevel {
+  BASIC
+  INTERMEDIATE
+  ADVANCED
+  FLUENT
+  NATIVE
+}
+
+enum ChineseRequiredLevel {
+  NONE
+  BASIC
+  INTERMEDIATE
+  HSK4
+  HSK5
+  FLUENT
+}
+
+enum EducationLevel {
+  HIGH_SCHOOL
+  DIPLOMA
+  BACHELORS
+  MASTERS
+  PHD
+  OTHER
+}
+
+enum EnglishProficiencyType {
+  IELTS
+  DUOLINGO
+  SAT
+  GED
+  TOEFL
+  OTHER
+}
+
+enum ApplicationStatus {
+  APPLIED
+  VIEWED
+  SHORTLISTED
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  SYSTEM
+}
+
+enum MediaVisibility {
+  PRIVATE
+  COMPANY_ONLY
+  PUBLIC
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum TranslationStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum LocaleCode {
+  EN @map("en")
+  ZH @map("zh")
+  BN @map("bn")
+}
+
+enum TaxonomyEntityType {
+  INDUSTRY
+  FUNCTION
+  CATEGORY
+}
+
+enum EntitlementScope {
+  USER
+  COMPANY
+}
+
+enum AuthSessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  status       UserStatus @default(ACTIVE)
+  lastLoginAt  DateTime?  @map("last_login_at") @db.Timestamptz(6)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime?  @map("deleted_at") @db.Timestamptz(6)
+
+  candidate             Candidate?
+  userRoles             UserRole[]
+  companyMembers        CompanyMember[]
+  ownedMediaAssets      MediaAsset[]           @relation("MediaOwner")
+  trackingEvents        TrackingEvent[]
+  trackingEventsArchive TrackingEventArchive[]
+  authoredMessages      Message[]              @relation("MessageAuthor")
+  applicationEvents     ApplicationEvent[]     @relation("ApplicationEventActor")
+  applicationNotes      ApplicationNote[]      @relation("ApplicationNoteAuthor")
+  authoredBlogPosts     BlogPost[]             @relation("BlogPostAuthor")
+  authoredBlogPostTrans BlogPostTranslation[]  @relation("BlogPostTranslationAuthor")
+  authoredTutorials     Tutorial[]             @relation("TutorialAuthor")
+  authoredTutorialTrans TutorialTranslation[]  @relation("TutorialTranslationAuthor")
+  subscriptions         Subscription[]
+  paymentCustomers      PaymentCustomer[]
+  authSessions          AuthSession[]
+  passwordResetTokens   PasswordResetToken[]
+  aiKeyCredential       UserAiKeyCredential?
+  aiUsageEvents         AiUsageEvent[]
+
+  @@map("users")
+}
+
+model UserAiKeyCredential {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  provider        String   @default("openai")
+  encryptedSecret String   @map("encrypted_secret")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_ai_key_credentials")
+}
+
+model AiUsageEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  action         String
+  estimatedUnits Int      @default(0) @map("estimated_units")
+  success        Boolean  @default(true)
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, action, createdAt])
+  @@map("ai_usage_events")
+}
+
+model AuthSession {
+  id               String            @id @default(uuid()) @db.Uuid
+  userId           String            @map("user_id") @db.Uuid
+  refreshTokenHash String            @map("refresh_token_hash")
+  status           AuthSessionStatus @default(ACTIVE)
+  userAgent        String?           @map("user_agent")
+  ipAddress        String?           @map("ip_address")
+  expiresAt        DateTime          @map("expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime?         @map("revoked_at") @db.Timestamptz(6)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("auth_sessions")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, usedAt])
+  @@map("password_reset_tokens")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  name        String
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+  companyMembers  CompanyMember[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid()) @db.Uuid
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  companyId String?  @map("company_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, companyId])
+  @@index([userId, companyId])
+  @@map("user_roles")
+}
+
+model Company {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  name               String
+  slug               String                    @unique
+  contactName        String?                   @map("contact_name")
+  contactDesignation String?                   @map("contact_designation")
+  contactEmail       String?                   @map("contact_email")
+  contactPhone       String?                   @map("contact_phone")
+  addressLine1       String?                   @map("address_line_1")
+  businessLicenseNo  String?                   @map("business_license_no")
+  companyType        CompanyType               @default(OTHER) @map("company_type")
+  orgSize            OrgSize                   @default(SMALL) @map("org_size")
+  website            String?
+  description        String?
+  city               String?
+  province           String?
+  country            String?
+  verificationStatus CompanyVerificationStatus @default(UNVERIFIED) @map("verification_status")
+  verifiedAt         DateTime?                 @map("verified_at") @db.Timestamptz(6)
+  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime?                 @map("deleted_at") @db.Timestamptz(6)
+
+  members               CompanyMember[]
+  verificationDocuments CompanyVerificationDocument[]
+  jobs                  Job[]
+  userRoles             UserRole[]
+  mediaAssets           MediaAsset[]
+  conversations         Conversation[]
+  subscriptions         Subscription[]
+  paymentCustomers      PaymentCustomer[]
+
+  @@map("companies")
+}
+
+model CompanyMember {
+  id          String              @id @default(uuid()) @db.Uuid
+  companyId   String              @map("company_id") @db.Uuid
+  userId      String              @map("user_id") @db.Uuid
+  roleId      String?             @map("role_id") @db.Uuid
+  title       String?
+  status      CompanyMemberStatus @default(ACTIVE)
+  invitedById String?             @map("invited_by_id") @db.Uuid
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    Role?   @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, userId])
+  @@index([userId])
+  @@map("company_members")
+}
+
+model CompanyVerificationDocument {
+  id           String                     @id @default(uuid()) @db.Uuid
+  companyId    String                     @map("company_id") @db.Uuid
+  mediaAssetId String                     @map("media_asset_id") @db.Uuid
+  docType      CompanyVerificationDocType @map("doc_type")
+  status       VerificationStatus         @default(PENDING)
+  notes        String?
+  createdAt    DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset @relation("CompanyVerificationMediaAsset", fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status])
+  @@map("company_verification_documents")
+}
+
+model Candidate {
+  id                     String          @id @default(uuid()) @db.Uuid
+  userId                 String?         @unique @map("user_id") @db.Uuid
+  status                 CandidateStatus @default(UNCLAIMED)
+  source                 String?
+  profileCompletionScore Int             @default(0) @map("profile_completion_score")
+  metadata               Json?
+  createdAt              DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt              DateTime?       @map("deleted_at") @db.Timestamptz(6)
+
+  user                User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  profile             CandidateProfile?
+  claimTokens         CandidateClaimToken[]
+  applications        Application[]
+  applicationArchives ApplicationArchive[]
+  conversations       Conversation[]
+
+  @@index([profileCompletionScore])
+  @@map("candidates")
+}
+
+model CandidateClaimToken {
+  id              String    @id @default(uuid()) @db.Uuid
+  candidateId     String    @map("candidate_id") @db.Uuid
+  token           String    @unique
+  expiresAt       DateTime  @map("expires_at") @db.Timestamptz(6)
+  claimedByUserId String?   @map("claimed_by_user_id") @db.Uuid
+  claimedAt       DateTime? @map("claimed_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId, expiresAt])
+  @@map("candidate_claim_tokens")
+}
+
+model CandidateProfile {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  candidateId            String                  @unique @map("candidate_id") @db.Uuid
+  profileCompletionScore Int                     @default(0) @map("profile_completion_score")
+  languageCode           String                  @default("en") @map("language_code")
+  fullName               String                  @map("full_name")
+  dob                    DateTime?               @db.Date
+  fatherName             String?                 @map("father_name")
+  motherName             String?                 @map("mother_name")
+  nationality            String?
+  currentCountry         String?                 @map("current_country")
+  currentCity            String?                 @map("current_city")
+  phone                  String?
+  email                  String?
+  gender                 String?
+  maritalStatus          String?                 @map("marital_status")
+  chinaEducation         Boolean                 @default(false) @map("china_education")
+  everBeenToChina        Boolean                 @default(false) @map("ever_been_to_china")
+  everRejectedChina      Boolean                 @default(false) @map("ever_rejected_china")
+  hskLevel               Int?                    @map("hsk_level")
+  englishProficiencyType EnglishProficiencyType? @map("english_proficiency_type")
+  englishScoreOverall    Decimal?                @map("english_score_overall") @db.Decimal(5, 2)
+  englishScoreReading    Decimal?                @map("english_score_reading") @db.Decimal(5, 2)
+  englishScoreWriting    Decimal?                @map("english_score_writing") @db.Decimal(5, 2)
+  englishScoreSpeaking   Decimal?                @map("english_score_speaking") @db.Decimal(5, 2)
+  englishScoreListening  Decimal?                @map("english_score_listening") @db.Decimal(5, 2)
+  englishScoreRaw        Json?                   @map("english_score_raw")
+  desiredJobTitles       String[]                @default([]) @map("desired_job_titles")
+  desiredCities          String[]                @default([]) @map("desired_cities")
+  salaryExpectation      Int?                    @map("salary_expectation")
+  salaryCurrency         String?                 @default("CNY") @map("salary_currency")
+  visaStatus             String?                 @map("visa_status")
+  workPermitStatus       String?                 @map("work_permit_status")
+  summary                String?
+  extensibleData         Json?                   @map("extensible_data")
+  createdAt              DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  candidate      Candidate                @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  education      CandidateEducation[]
+  experiences    CandidateExperience[]
+  skills         CandidateSkill[]
+  languages      CandidateLanguage[]
+  certifications CandidateCertification[]
+  documents      CandidateDocument[]
+  passports      CandidatePassport[]
+  testScores     CandidateTestScore[]
+
+  @@map("candidate_profiles")
+}
+
+model CandidateEducation {
+  id                 String    @id @default(uuid()) @db.Uuid
+  candidateProfileId String    @map("candidate_profile_id") @db.Uuid
+  institution        String
+  degree             String?
+  degreeType         String?   @map("degree_type")
+  fieldOfStudy       String?   @map("field_of_study")
+  startDate          DateTime? @map("start_date") @db.Date
+  endDate            DateTime? @map("end_date") @db.Date
+  isOngoing          Boolean   @default(false) @map("is_ongoing")
+  passingYear        Int?      @map("passing_year")
+  cgpa               String?
+  country            String?
+  grade              String?
+  description        String?
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@index([candidateProfileId])
+  @@map("candidate_educations")
+}
+
+model CandidateExperience {
+  id                 String          @id @default(uuid()) @db.Uuid
+  candidateProfileId String          @map("candidate_profile_id") @db.Uuid
+  companyName        String          @map("company_name")
+  jobTitle           String          @map("job_title")
+  employmentType     EmploymentType? @map("employment_type")
+  startDate          DateTime?       @map("start_date") @db.Date
+  endDate            DateTime?       @map("end_date") @db.Date
+  isCurrent          Boolean         @default(false) @map("is_current")
+  locationCity       String?         @map("location_city")
+  locationCountry    String?         @map("location_country")
+  description        String?
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@index([candidateProfileId])
+  @@map("candidate_experiences")
+}
+
+model CandidateSkill {
+  id                 String   @id @default(uuid()) @db.Uuid
+  candidateProfileId String   @map("candidate_profile_id") @db.Uuid
+  name               String
+  level              String?
+  yearsOfExperience  Int?     @map("years_of_experience")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@index([candidateProfileId])
+  @@map("candidate_skills")
+}
+
+model CandidateLanguage {
+  id                 String   @id @default(uuid()) @db.Uuid
+  candidateProfileId String   @map("candidate_profile_id") @db.Uuid
+  language           String
+  proficiency        String?
+  certification      String?
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@index([candidateProfileId])
+  @@map("candidate_languages")
+}
+
+model CandidateCertification {
+  id                 String    @id @default(uuid()) @db.Uuid
+  candidateProfileId String    @map("candidate_profile_id") @db.Uuid
+  name               String
+  issuingOrg         String?   @map("issuing_org")
+  issuedAt           DateTime? @map("issued_at") @db.Date
+  expiresAt          DateTime? @map("expires_at") @db.Date
+  credentialId       String?   @map("credential_id")
+  credentialUrl      String?   @map("credential_url")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@index([candidateProfileId])
+  @@map("candidate_certifications")
+}
+
+model CandidateDocument {
+  id                 String    @id @default(uuid()) @db.Uuid
+  candidateProfileId String    @map("candidate_profile_id") @db.Uuid
+  mediaAssetId       String?   @map("media_asset_id") @db.Uuid
+  documentType       String    @map("document_type")
+  title              String?
+  languageCode       String?   @map("language_code")
+  issuedAt           DateTime? @map("issued_at") @db.Date
+  expiresAt          DateTime? @map("expires_at") @db.Date
+  metadata           Json?
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  mediaAsset       MediaAsset?      @relation("CandidateDocumentAsset", fields: [mediaAssetId], references: [id], onDelete: SetNull)
+
+  @@index([candidateProfileId])
+  @@map("candidate_documents")
+}
+
+model CandidatePassport {
+  id                 String    @id @default(uuid()) @db.Uuid
+  candidateProfileId String    @map("candidate_profile_id") @db.Uuid
+  passportNumber     String?   @map("passport_number")
+  countryCode        String?   @map("country_code")
+  issuedAt           DateTime? @map("issued_at") @db.Date
+  expiresAt          DateTime? @map("expires_at") @db.Date
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@index([candidateProfileId])
+  @@map("candidate_passports")
+}
+
+model CandidateTestScore {
+  id                 String    @id @default(uuid()) @db.Uuid
+  candidateProfileId String    @map("candidate_profile_id") @db.Uuid
+  testType           String    @map("test_type")
+  score              Decimal?  @db.Decimal(8, 2)
+  maxScore           Decimal?  @map("max_score") @db.Decimal(8, 2)
+  details            Json?
+  takenAt            DateTime? @map("taken_at") @db.Date
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@index([candidateProfileId])
+  @@map("candidate_test_scores")
+}
+
+model Industry {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  categories JobCategory[]
+
+  @@map("industries")
+}
+
+model JobFunction {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  categories JobCategory[]
+
+  @@map("job_functions")
+}
+
+model JobCategory {
+  id            String   @id @default(uuid()) @db.Uuid
+  slug          String   @unique
+  isActive      Boolean  @default(true) @map("is_active")
+  industryId    String   @map("industry_id") @db.Uuid
+  jobFunctionId String   @map("job_function_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  industry    Industry    @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  jobFunction JobFunction @relation(fields: [jobFunctionId], references: [id], onDelete: Cascade)
+  jobs        Job[]
+
+  @@index([industryId, jobFunctionId])
+  @@map("job_categories")
+}
+
+model TaxonomyTranslation {
+  id          String             @id @default(uuid()) @db.Uuid
+  entityType  TaxonomyEntityType @map("entity_type")
+  entityId    String             @map("entity_id") @db.Uuid
+  locale      LocaleCode
+  name        String
+  description String?
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([entityType, entityId, locale])
+  @@index([entityType, locale])
+  @@map("taxonomy_translations")
+}
+
+model JobTag {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  label     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  jobTags JobTags[]
+
+  @@map("job_tags_catalog")
+}
+
+model JobTags {
+  id        String   @id @default(uuid()) @db.Uuid
+  jobId     String   @map("job_id") @db.Uuid
+  tagId     String   @map("tag_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  job Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tag JobTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, tagId])
+  @@index([tagId])
+  @@map("job_tags")
+}
+
+model Job {
+  id                      String                  @id @default(uuid()) @db.Uuid
+  companyId               String                  @map("company_id") @db.Uuid
+  categoryId              String?                 @map("category_id") @db.Uuid
+  title                   String
+  description             String
+  languageCode            LocaleCode              @default(EN) @map("language_code")
+  foreignerEligible       Boolean                 @default(true) @map("foreigner_eligible")
+  visaSponsorship         Boolean                 @default(false) @map("visa_sponsorship")
+  workPermitSupport       Boolean                 @default(false) @map("work_permit_support")
+  chineseRequiredLevel    ChineseRequiredLevel    @default(NONE) @map("chinese_required_level")
+  englishRequired         Boolean                 @default(false) @map("english_required")
+  relocationSupport       Boolean                 @default(false) @map("relocation_support")
+  housingProvided         Boolean                 @default(false) @map("housing_provided")
+  experienceYears         Int?                    @map("experience_years")
+  educationLevel          EducationLevel?         @map("education_level")
+  salaryMin               Int?                    @map("salary_min")
+  salaryMax               Int?                    @map("salary_max")
+  currency                String                  @default("CNY")
+  city                    String
+  province                String?
+  country                 String
+  jobType                 JobType                 @default(FULL_TIME) @map("job_type")
+  remotePolicy            RemotePolicy            @default(ONSITE) @map("remote_policy")
+  headcount               Int?
+  applicationDeadline     DateTime?               @map("application_deadline") @db.Timestamptz(6)
+  benefits                Json?
+  screeningQuestions      Json?                   @map("screening_questions")
+  source                  JobSource               @default(DIRECT)
+  sourceUrl               String?                 @map("source_url")
+  contactVisibilityPolicy ContactVisibilityPolicy @default(APPLICANTS_ONLY) @map("contact_visibility_policy")
+  isPublished             Boolean                 @default(false) @map("is_published")
+  publishedAt             DateTime?               @map("published_at") @db.Timestamptz(6)
+  metadata                Json?
+  createdAt               DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt               DateTime?               @map("deleted_at") @db.Timestamptz(6)
+
+  company              Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category             JobCategory?             @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  languageRequirements JobLanguageRequirement[]
+  allowedNationalities JobAllowedNationality[]
+  locations            JobLocation[]
+  jobTags              JobTags[]
+  applications         Application[]
+  applicationArchives  ApplicationArchive[]
+  conversations        Conversation[]
+  translations         JobTranslation[]
+
+  @@index([createdAt], map: "idx_jobs_created_at")
+  @@index([city, province], map: "idx_jobs_city_province")
+  @@index([visaSponsorship], map: "idx_jobs_visa_sponsorship")
+  @@index([foreignerEligible], map: "idx_jobs_foreigner_eligible")
+  @@index([remotePolicy], map: "idx_jobs_remote_policy")
+  @@index([categoryId], map: "idx_jobs_category_id")
+  @@map("jobs")
+}
+
+model JobTranslation {
+  id           String            @id @default(uuid()) @db.Uuid
+  jobId        String            @map("job_id") @db.Uuid
+  languageCode LocaleCode        @map("language_code")
+  title        String
+  description  String
+  status       TranslationStatus @default(DRAFT)
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, languageCode])
+  @@map("job_translations")
+}
+
+model JobLanguageRequirement {
+  id        String        @id @default(uuid()) @db.Uuid
+  jobId     String        @map("job_id") @db.Uuid
+  language  JobLanguage
+  level     LanguageLevel
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, language])
+  @@map("job_language_requirements")
+}
+
+model JobAllowedNationality {
+  id              String   @id @default(uuid()) @db.Uuid
+  jobId           String   @map("job_id") @db.Uuid
+  nationalityCode String   @map("nationality_code")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, nationalityCode])
+  @@index([nationalityCode])
+  @@map("job_allowed_nationalities")
+}
+
+model JobLocation {
+  id        String   @id @default(uuid()) @db.Uuid
+  jobId     String   @map("job_id") @db.Uuid
+  country   String
+  province  String?
+  city      String
+  district  String?
+  address   String?
+  latitude  Decimal? @db.Decimal(9, 6)
+  longitude Decimal? @db.Decimal(9, 6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([country, province, city])
+  @@map("job_locations")
+}
+
+model Application {
+  id                String            @id @default(uuid()) @db.Uuid
+  jobId             String            @map("job_id") @db.Uuid
+  candidateId       String            @map("candidate_id") @db.Uuid
+  status            ApplicationStatus @default(APPLIED)
+  candidateSnapshot Json?             @map("candidate_snapshot")
+  coverLetter       String?           @map("cover_letter")
+  screeningAnswers  Json?             @map("screening_answers")
+  appliedAt         DateTime          @default(now()) @map("applied_at") @db.Timestamptz(6)
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime?         @map("deleted_at") @db.Timestamptz(6)
+
+  job       Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidate Candidate          @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  events    ApplicationEvent[]
+  notes     ApplicationNote[]
+
+  @@unique([jobId, candidateId])
+  @@index([jobId, createdAt], map: "idx_applications_job_created_at")
+  @@index([candidateId, createdAt], map: "idx_applications_candidate_created_at")
+  @@index([status], map: "idx_applications_status")
+  @@map("applications")
+}
+
+model ApplicationArchive {
+  id                String            @id @default(uuid()) @db.Uuid
+  jobId             String?           @map("job_id") @db.Uuid
+  candidateId       String?           @map("candidate_id") @db.Uuid
+  status            ApplicationStatus @default(APPLIED)
+  candidateSnapshot Json?             @map("candidate_snapshot")
+  coverLetter       String?           @map("cover_letter")
+  screeningAnswers  Json?             @map("screening_answers")
+  appliedAt         DateTime          @default(now()) @map("applied_at") @db.Timestamptz(6)
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime?         @map("deleted_at") @db.Timestamptz(6)
+
+  job       Job?       @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+
+  @@index([jobId, createdAt])
+  @@index([candidateId, createdAt])
+  @@index([status])
+  @@map("applications_archive")
+}
+
+model ApplicationEvent {
+  id            String             @id @default(uuid()) @db.Uuid
+  applicationId String             @map("application_id") @db.Uuid
+  actorUserId   String?            @map("actor_user_id") @db.Uuid
+  statusFrom    ApplicationStatus? @map("status_from")
+  statusTo      ApplicationStatus  @map("status_to")
+  eventName     String             @map("event_name")
+  payload       Json?
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  actorUser   User?       @relation("ApplicationEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, createdAt])
+  @@map("application_events")
+}
+
+model ApplicationNote {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  authorUserId  String?  @map("author_user_id") @db.Uuid
+  body          String
+  isPrivate     Boolean  @default(true) @map("is_private")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorUser  User?       @relation("ApplicationNoteAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, createdAt])
+  @@map("application_notes")
+}
+
+model Conversation {
+  id          String   @id @default(uuid()) @db.Uuid
+  candidateId String?  @map("candidate_id") @db.Uuid
+  jobId       String?  @map("job_id") @db.Uuid
+  companyId   String?  @map("company_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  job       Job?       @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  messages  Message[]
+
+  @@index([candidateId, companyId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String      @id @default(uuid()) @db.Uuid
+  conversationId String      @map("conversation_id") @db.Uuid
+  senderUserId   String?     @map("sender_user_id") @db.Uuid
+  messageType    MessageType @default(TEXT) @map("message_type")
+  body           String?
+  mediaAssetId   String?     @map("media_asset_id") @db.Uuid
+  sentAt         DateTime    @default(now()) @map("sent_at") @db.Timestamptz(6)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderUser   User?        @relation("MessageAuthor", fields: [senderUserId], references: [id], onDelete: SetNull)
+  mediaAsset   MediaAsset?  @relation("MessageMediaAsset", fields: [mediaAssetId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, sentAt])
+  @@map("messages")
+}
+
+model BlogPost {
+  id           String    @id @default(uuid()) @db.Uuid
+  slug         String    @unique
+  languageCode String    @default("en") @map("language_code")
+  title        String
+  excerpt      String?
+  content      String
+  isPublished  Boolean   @default(false) @map("is_published")
+  authorUserId String?   @map("author_user_id") @db.Uuid
+  publishedAt  DateTime? @map("published_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  authorUser   User?                 @relation("BlogPostAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  translations BlogPostTranslation[]
+
+  @@map("blog_posts")
+}
+
+model BlogPostTranslation {
+  id           String            @id @default(uuid()) @db.Uuid
+  blogPostId   String            @map("blog_post_id") @db.Uuid
+  languageCode String            @map("language_code")
+  title        String
+  excerpt      String?
+  content      String
+  status       TranslationStatus @default(DRAFT)
+  authorUserId String?           @map("author_user_id") @db.Uuid
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  blogPost   BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  authorUser User?    @relation("BlogPostTranslationAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([blogPostId, languageCode])
+  @@map("blog_post_translations")
+}
+
+model Tutorial {
+  id           String    @id @default(uuid()) @db.Uuid
+  slug         String    @unique
+  languageCode String    @default("en") @map("language_code")
+  title        String
+  summary      String?
+  content      String
+  isPublished  Boolean   @default(false) @map("is_published")
+  authorUserId String?   @map("author_user_id") @db.Uuid
+  publishedAt  DateTime? @map("published_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  authorUser   User?                 @relation("TutorialAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  translations TutorialTranslation[]
+
+  @@map("tutorials")
+}
+
+model TutorialTranslation {
+  id           String            @id @default(uuid()) @db.Uuid
+  tutorialId   String            @map("tutorial_id") @db.Uuid
+  languageCode String            @map("language_code")
+  title        String
+  summary      String?
+  content      String
+  status       TranslationStatus @default(DRAFT)
+  authorUserId String?           @map("author_user_id") @db.Uuid
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tutorial   Tutorial @relation(fields: [tutorialId], references: [id], onDelete: Cascade)
+  authorUser User?    @relation("TutorialTranslationAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([tutorialId, languageCode])
+  @@map("tutorial_translations")
+}
+
+model MediaAsset {
+  id             String          @id @default(uuid()) @db.Uuid
+  objectKey      String          @unique @map("object_key")
+  bucket         String?
+  mimeType       String          @map("mime_type")
+  sizeBytes      BigInt          @map("size_bytes")
+  checksumSha256 String?         @map("checksum_sha256")
+  ownerUserId    String?         @map("owner_user_id") @db.Uuid
+  companyId      String?         @map("company_id") @db.Uuid
+  visibility     MediaVisibility @default(PRIVATE)
+  acl            Json?
+  metadata       Json?
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt      DateTime?       @map("deleted_at") @db.Timestamptz(6)
+
+  ownerUser            User?                         @relation("MediaOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  company              Company?                      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  candidateDocuments   CandidateDocument[]           @relation("CandidateDocumentAsset")
+  companyVerifications CompanyVerificationDocument[] @relation("CompanyVerificationMediaAsset")
+  messageAttachments   Message[]                     @relation("MessageMediaAsset")
+
+  @@index([ownerUserId])
+  @@index([companyId])
+  @@map("media_assets")
+}
+
+model TrackingEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  eventName   String    @map("event_name")
+  sessionId   String?   @map("session_id")
+  anonymousId String?   @map("anonymous_id")
+  userId      String?   @map("user_id") @db.Uuid
+  utmSource   String?   @map("utm_source")
+  utmMedium   String?   @map("utm_medium")
+  utmCampaign String?   @map("utm_campaign")
+  utmTerm     String?   @map("utm_term")
+  utmContent  String?   @map("utm_content")
+  referrer    String?
+  pageUrl     String?   @map("page_url")
+  properties  Json?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt], map: "idx_tracking_events_created_at")
+  @@index([eventName, createdAt], map: "idx_tracking_events_event_name_created_at")
+  @@index([utmSource, createdAt], map: "idx_tracking_events_utm_source_created_at")
+  @@map("tracking_events")
+}
+
+model TrackingEventArchive {
+  id          String    @id @default(uuid()) @db.Uuid
+  eventName   String    @map("event_name")
+  sessionId   String?   @map("session_id")
+  anonymousId String?   @map("anonymous_id")
+  userId      String?   @map("user_id") @db.Uuid
+  utmSource   String?   @map("utm_source")
+  utmMedium   String?   @map("utm_medium")
+  utmCampaign String?   @map("utm_campaign")
+  utmTerm     String?   @map("utm_term")
+  utmContent  String?   @map("utm_content")
+  referrer    String?
+  pageUrl     String?   @map("page_url")
+  properties  Json?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt, eventName])
+  @@map("tracking_events_archive")
+}
+
+model AnalyticsDailyAggregate {
+  id         String   @id @default(uuid()) @db.Uuid
+  metricDate DateTime @map("metric_date") @db.Date
+  metricKey  String   @map("metric_key")
+  dimensions Json?
+  value      Decimal  @db.Decimal(20, 4)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([metricDate, metricKey])
+  @@map("analytics_daily_aggregates")
+}
+
+model SubscriptionPlan {
+  id              String   @id @default(uuid()) @db.Uuid
+  code            String   @unique
+  name            String
+  languageCode    String   @default("en") @map("language_code")
+  description     String?
+  amountCents     Int      @map("amount_cents")
+  currency        String   @default("USD")
+  billingInterval String   @default("month") @map("billing_interval")
+  isActive        Boolean  @default(true) @map("is_active")
+  features        Json?
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  subscriptions Subscription[]
+  translations  SubscriptionPlanTranslation[]
+  entitlements  PlanEntitlement[]
+
+  @@map("subscription_plans")
+}
+
+model SubscriptionPlanTranslation {
+  id           String            @id @default(uuid()) @db.Uuid
+  planId       String            @map("plan_id") @db.Uuid
+  languageCode String            @map("language_code")
+  name         String
+  description  String?
+  status       TranslationStatus @default(DRAFT)
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  plan SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, languageCode])
+  @@map("subscription_plan_translations")
+}
+
+model Subscription {
+  id          String             @id @default(uuid()) @db.Uuid
+  userId      String?            @map("user_id") @db.Uuid
+  companyId   String?            @map("company_id") @db.Uuid
+  planId      String             @map("plan_id") @db.Uuid
+  status      SubscriptionStatus @default(TRIALING)
+  startsAt    DateTime           @map("starts_at") @db.Timestamptz(6)
+  endsAt      DateTime?          @map("ends_at") @db.Timestamptz(6)
+  trialEndsAt DateTime?          @map("trial_ends_at") @db.Timestamptz(6)
+  canceledAt  DateTime?          @map("canceled_at") @db.Timestamptz(6)
+  externalRef String?            @map("external_ref")
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user         User?                     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  company      Company?                  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  plan         SubscriptionPlan          @relation(fields: [planId], references: [id], onDelete: Restrict)
+  entitlements SubscriptionEntitlement[]
+
+  @@index([userId, status])
+  @@index([companyId, status])
+  @@map("subscriptions")
+}
+
+model Entitlement {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique
+  name        String
+  description String?
+  scope       EntitlementScope
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  plans         PlanEntitlement[]
+  subscriptions SubscriptionEntitlement[]
+
+  @@map("entitlements")
+}
+
+model PlanEntitlement {
+  id                 String   @id @default(uuid()) @db.Uuid
+  subscriptionPlanId String   @map("subscription_plan_id") @db.Uuid
+  entitlementId      String   @map("entitlement_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  subscriptionPlan SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id], onDelete: Cascade)
+  entitlement      Entitlement      @relation(fields: [entitlementId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionPlanId, entitlementId])
+  @@map("plan_entitlements")
+}
+
+model SubscriptionEntitlement {
+  id             String    @id @default(uuid()) @db.Uuid
+  subscriptionId String    @map("subscription_id") @db.Uuid
+  entitlementId  String    @map("entitlement_id") @db.Uuid
+  grantedAt      DateTime  @default(now()) @map("granted_at") @db.Timestamptz(6)
+  expiresAt      DateTime? @map("expires_at") @db.Timestamptz(6)
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  entitlement  Entitlement  @relation(fields: [entitlementId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, entitlementId])
+  @@map("subscription_entitlements")
+}
+
+model PaymentCustomer {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String?  @map("user_id") @db.Uuid
+  companyId          String?  @map("company_id") @db.Uuid
+  provider           String
+  providerCustomerId String   @map("provider_customer_id")
+  email              String?
+  metadata           Json?
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerCustomerId])
+  @@map("payment_customers")
+}

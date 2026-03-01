@@ -1,0 +1,34 @@
+name: Deploy Railway
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node (for Railway CLI if needed)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Python (for api build checks)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build images (placeholder)
+        run: |
+          echo "TODO: Build/push apps/web and apps/api images"
+          echo "Use Railway native deploy or container registry flow"
+
+      - name: Deploy to Railway (placeholder)
+        run: |
+          echo "TODO: Configure RAILWAY_TOKEN and service IDs"
+          echo "railway up --service web"
+          echo "railway up --service api"

@@ -1,0 +1,2 @@
+[console_scripts]
+seed-dev = scripts.seed_dev:main
