@@ -32,6 +32,14 @@ The web Dockerfile already does the following:
 2. builds the Next.js app in `apps/web`
 3. starts `next start`
 
+The web container is pinned to:
+
+- `0.0.0.0:3000`
+
+So in Railway public networking, the target port for the web service must be:
+
+- `3000`
+
 That means you do not need a separate Railway start command if you keep using `apps/web/Dockerfile`.
 
 ## Domain wiring
@@ -45,9 +53,10 @@ That means you do not need a separate Railway start command if you keep using `a
 
 1. Confirm the `web` service points to `apps/web/Dockerfile`.
 2. Confirm `NEXT_PUBLIC_API_URL` points to the deployed API, not `localhost`.
-3. Trigger deploy.
-4. Open the deployed frontend.
-5. Verify login, jobs list, and locale routes work.
+3. Confirm the Railway public networking target port is `3000`.
+4. Trigger deploy.
+5. Open the deployed frontend.
+6. Verify login, jobs list, and locale routes work.
 
 ## Common failure
 
