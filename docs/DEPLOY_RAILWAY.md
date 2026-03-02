@@ -14,6 +14,24 @@ Do not split the frontend and backend into separate repositories yet. The curren
 - Root config: `railway.json`
 - API Dockerfile: `apps/api/Dockerfile`
 - Web Dockerfile: `apps/web/Dockerfile`
+- API deploy guide: `docs/DEPLOY_RAILWAY_API.md`
+- Web deploy guide: `docs/DEPLOY_RAILWAY_WEB.md`
+
+## Important root-config note
+
+The root `railway.json` only defines restart policy.
+
+It does **not** force a global builder anymore. That is intentional.
+
+If you set `builder = DOCKERFILE` globally at the repo root, Railway will look for:
+
+- `./Dockerfile`
+
+and fail with:
+
+- `Dockerfile \`Dockerfile\` does not exist`
+
+Each Railway service must explicitly choose its own Dockerfile path in the Railway UI.
 
 ## Railway service configuration
 

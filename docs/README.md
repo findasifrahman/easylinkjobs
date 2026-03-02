@@ -11,6 +11,8 @@ This folder contains core technical documentation for easylinkjobs.
 - `CANDIDATE_PROFILE.md`: profile sections, field rationale, completion scoring rules.
 - `DESIGN_SYSTEM.md`: theme tokens, responsive rules, component patterns.
 - `DEPLOY_RAILWAY.md`: Railway service setup, Dockerfiles, and deploy flow.
+- `DEPLOY_RAILWAY_API.md`: Railway setup for the FastAPI backend service.
+- `DEPLOY_RAILWAY_WEB.md`: Railway setup for the Next.js frontend service.
 - `INGESTION.md`: Clawbot payload contract, dedupe rules, and secure ingest flow.
 - `JOBS_AND_APPLICATIONS.md`: posting flow, application pipeline, and contact visibility rules.
 - `PREMIUM.md`: subscription scaffolding, entitlements, and future billing plan.
