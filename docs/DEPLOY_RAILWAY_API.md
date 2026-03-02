@@ -46,6 +46,14 @@ The API Dockerfile already does the following:
 3. runs `pnpm prisma:migrate:deploy`
 4. starts `uvicorn app.main:app`
 
+The API container is pinned to:
+
+- `0.0.0.0:8000`
+
+So in Railway public networking, the target port for the API service must be:
+
+- `8000`
+
 That means you do not need a separate Railway start command if you keep using `apps/api/Dockerfile`.
 
 ## Health checks
@@ -63,8 +71,9 @@ This is not ideal as a long-term health endpoint, but it is enough until you add
 2. Confirm `REDIS_URL` points to the Railway Redis instance.
 3. Confirm all JWT secrets are rotated and unique in production.
 4. Confirm R2 credentials are valid and not your local dev values.
-5. Trigger deploy.
-6. Open `https://<api-domain>/docs` and verify FastAPI responds.
+5. Confirm the Railway public networking target port is `8000`.
+6. Trigger deploy.
+7. Open `https://<api-domain>/docs` and verify FastAPI responds.
 
 ## Common failure
 
