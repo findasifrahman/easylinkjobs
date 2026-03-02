@@ -10,7 +10,7 @@ import { notFound } from "next/navigation";
 
 import { JobCard } from "@/components/home/JobCard";
 import { JobsFilterBar } from "@/components/home/JobsFilterBar";
-import { featuredJobs } from "@/lib/data/content";
+import { featuredJobs } from "../../../lib/data/content";
 import { getDictionary, isSupportedLocale } from "@/lib/i18n";
 import { fetchPublicCategories, fetchPublicJobs } from "@/lib/server-api";
 

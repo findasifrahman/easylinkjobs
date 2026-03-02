@@ -16,7 +16,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { JobApplyPanel } from "@/components/jobs/JobApplyPanel";
-import { featuredJobs } from "@/lib/data/content";
+import { featuredJobs } from "../../../../lib/data/content";
 import { isSupportedLocale } from "@/lib/i18n";
 import { fetchPublicJob } from "@/lib/server-api";
 

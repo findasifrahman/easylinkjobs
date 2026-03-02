@@ -19,7 +19,7 @@ import { notFound } from "next/navigation";
 import { JobCard } from "@/components/home/JobCard";
 import { JobCarousel } from "@/components/home/JobCarousel";
 import { NoticeTicker } from "@/components/home/NoticeTicker";
-import { featuredJobs, heroMetrics, noticeItems } from "@/lib/data/content";
+import { featuredJobs, heroMetrics, noticeItems } from "../../lib/data/content";
 import { getDictionary, isSupportedLocale } from "@/lib/i18n";
 import { fetchPublicCategories, fetchPublicJobs } from "@/lib/server-api";
 import { themeTokens } from "@/theme";
