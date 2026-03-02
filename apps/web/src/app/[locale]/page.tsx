@@ -19,10 +19,57 @@ import { notFound } from "next/navigation";
 import { JobCard } from "@/components/home/JobCard";
 import { JobCarousel } from "@/components/home/JobCarousel";
 import { NoticeTicker } from "@/components/home/NoticeTicker";
-import { featuredJobs, heroMetrics, noticeItems } from "../../lib/data/content";
 import { getDictionary, isSupportedLocale } from "@/lib/i18n";
 import { fetchPublicCategories, fetchPublicJobs } from "@/lib/server-api";
 import { themeTokens } from "@/theme";
+
+const noticeItems = [
+  "Visa policy watch: Shanghai schools are reopening spring hiring.",
+  "112 new verified jobs added in the last 48 hours.",
+  "Work permit processing times improved for teaching roles in Zhejiang.",
+];
+
+const featuredJobs = [
+  {
+    id: "esl-teacher-shanghai-campus",
+    slug: "esl-teacher-shanghai-campus",
+    title: "ESL Teacher - Shanghai Campus",
+    company: "Aurora Learning Group",
+    city: "Shanghai",
+    country: "China",
+    visaSponsored: true,
+    salary: "18k-26k CNY",
+    tag: "Fast Visa",
+  },
+  {
+    id: "online-ielts-tutor",
+    slug: "online-ielts-tutor",
+    title: "Online IELTS Tutor",
+    company: "BluePeak Academy",
+    city: "Hangzhou",
+    country: "China",
+    visaSponsored: false,
+    salary: "12k-18k CNY",
+    tag: "Remote",
+  },
+  {
+    id: "shenzhen-curriculum",
+    slug: "shenzhen-curriculum",
+    title: "Curriculum Coordinator",
+    company: "Harbor International School",
+    city: "Shenzhen",
+    country: "China",
+    visaSponsored: true,
+    salary: "24k-34k CNY",
+    tag: "Leadership",
+  },
+];
+
+const heroMetrics = [
+  { label: "Verified employers", value: "420+" },
+  { label: "Fresh roles this week", value: "1.8k" },
+  { label: "Avg. first response", value: "36h" },
+];
 
 export async function generateMetadata({
   params,

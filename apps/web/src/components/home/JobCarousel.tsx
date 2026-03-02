@@ -13,8 +13,19 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import type { JobSummary } from "@/lib/data/content";
 import { trackEvent } from "@/components/tracking/TrackingProvider";
+
+type JobSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  company: string;
+  city: string;
+  country: string;
+  visaSponsored: boolean;
+  salary: string;
+  tag: string;
+};
 
 type Props = {
   jobs: JobSummary[];

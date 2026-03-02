@@ -8,8 +8,19 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
-import type { JobSummary } from "@/lib/data/content";
 import { themeTokens } from "@/theme";
+
+type JobSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  company: string;
+  city: string;
+  country: string;
+  visaSponsored: boolean;
+  salary: string;
+  tag: string;
+};
 
 type Props = {
   job: JobSummary;

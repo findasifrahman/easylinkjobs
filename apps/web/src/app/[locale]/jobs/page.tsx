@@ -10,9 +10,44 @@ import { notFound } from "next/navigation";
 
 import { JobCard } from "@/components/home/JobCard";
 import { JobsFilterBar } from "@/components/home/JobsFilterBar";
-import { featuredJobs } from "../../../lib/data/content";
 import { getDictionary, isSupportedLocale } from "@/lib/i18n";
 import { fetchPublicCategories, fetchPublicJobs } from "@/lib/server-api";
+
+const featuredJobs = [
+  {
+    id: "esl-teacher-shanghai-campus",
+    slug: "esl-teacher-shanghai-campus",
+    title: "ESL Teacher - Shanghai Campus",
+    company: "Aurora Learning Group",
+    city: "Shanghai",
+    country: "China",
+    visaSponsored: true,
+    salary: "18k-26k CNY",
+    tag: "Fast Visa",
+  },
+  {
+    id: "online-ielts-tutor",
+    slug: "online-ielts-tutor",
+    title: "Online IELTS Tutor",
+    company: "BluePeak Academy",
+    city: "Hangzhou",
+    country: "China",
+    visaSponsored: false,
+    salary: "12k-18k CNY",
+    tag: "Remote",
+  },
+  {
+    id: "shenzhen-curriculum",
+    slug: "shenzhen-curriculum",
+    title: "Curriculum Coordinator",
+    company: "Harbor International School",
+    city: "Shenzhen",
+    country: "China",
+    visaSponsored: true,
+    salary: "24k-34k CNY",
+    tag: "Leadership",
+  },
+];
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
