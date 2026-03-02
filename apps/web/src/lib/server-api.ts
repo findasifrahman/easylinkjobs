@@ -1,4 +1,10 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/v1";
+const API_BASE = process.env.API_BASE_URL
+  ? `${process.env.API_BASE_URL.replace(/\/$/, "")}/v1`
+  : process.env.INTERNAL_API_BASE_URL
+    ? `${process.env.INTERNAL_API_BASE_URL.replace(/\/$/, "")}/v1`
+    : process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")
+      : "http://localhost:8000/v1";
 
 type Envelope<T> = {
   ok: boolean;

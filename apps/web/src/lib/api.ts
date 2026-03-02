@@ -1,7 +1,6 @@
 "use client";
 
-const legacyApiBase = process.env.API_BASE_URL ? `${process.env.API_BASE_URL.replace(/\/$/, "")}/v1` : undefined;
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? legacyApiBase ?? "http://localhost:8000/v1";
+const API_BASE = "/api/backend";
 const ACCESS_KEY = "easylinkjobs_access_token";
 const REFRESH_KEY = "easylinkjobs_refresh_token";
 const REMEMBER_KEY = "easylinkjobs_remember_me";
